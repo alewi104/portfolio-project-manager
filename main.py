@@ -1,5 +1,5 @@
 # ================================================================================
-# project_info_collector.py
+# main.py
 # quieries the user for required input of a tech project's info and transforms the resultant dataframe into json input
 # ================================================================================
 
@@ -33,7 +33,8 @@ def init_db():
                    problem TEXT,
                    solution TEXT,
                    lessons_learned TEXT,
-                   architecture TEXT
+                   architecture TEXT, 
+                   ready_for_publish BOOLEAN
                 )
             """)
     cursor.execute("""
@@ -73,9 +74,17 @@ def init_db():
     conn.commit()
     conn.close()
 
+def db_to_df(table: str) -> pd.DataFrame: 
+    conn = get_connection()
+    df_sql = pd.read_sql("SELECT * FROM " + table, conn)
+    conn.close()
 
+    return df_sql
+
+#prints the db onto the command line
 def view_projects():
-    pass
+    data = db_to_df("projects")
+    print(data)
 
 def add_project():
     pass
