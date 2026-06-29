@@ -81,10 +81,14 @@ def db_to_df(table: str) -> pd.DataFrame:
 
     return df_sql
 
-#prints the db onto the command line
+#prints the chosen db table onto the command line
 def view_projects():
     data = db_to_df("projects")
-    print(data)
+
+    if data.empty:
+        print("No projects recorded. Try using the 'Add Project' option")
+    else:
+        print(data)
 
 def add_project():
     pass
@@ -97,6 +101,8 @@ def delete_project():
 
 def export_db_to_json():
     pass
+
+# MAIN MENU
 
 def main(): 
     while True: 
