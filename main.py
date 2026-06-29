@@ -91,7 +91,46 @@ def view_projects():
         print(data)
 
 def add_project():
-    pass
+    while True:
+        print()
+        print("-" * 50)
+        print("PROJECT ENTRY")
+        print("-" * 50)
+
+        title = input("     1. Enter title: ").strip()
+        slug = input("      2. Enter slug: ").strip()
+        description = input("     3. Enter a short description: ").strip()
+        problem = input("     4. Enter problem description: ").strip()
+        solution = input("     5. Enter solutions: ").strip()
+        lessons_learned = input("     6. Enter the lessons learned: ").strip()
+        architecture = input("     7. Enter architecture: ").strip()
+        thumbnail = input("     8. Enter thumbnail url: ").strip()
+        thumbnail_alt = input("     9. Enter thumbnail alt description: ").strip()
+        github_link = input("     10. Enter github repo url: ").strip()
+        demo_video = input("     11. Enter a demo video url: ").strip()
+        ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip()
+
+
+        done = input("     done? (y/n): ").strip()
+
+        # if ready_for_publish == "yes":
+        #     ready_for_publish = True
+        # elif ready_for_publish == "no":
+        #     ready_for_publish = False
+        # else:
+        #     print("a yes or no only")
+        #     continue
+        
+        if done == "y":
+            conn = get_connection()
+            cursor = conn.cursor()
+            query = "INSERT INTO projects (slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish) VALUES(?,?,?,?,?,?,?,?,?,?,?,?);" 
+            cursor.execute(query, (slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish))
+            
+            conn.commit()
+            conn.close()
+            break
+
 
 def edit_project():
     pass
