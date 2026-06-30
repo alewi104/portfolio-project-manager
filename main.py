@@ -79,6 +79,9 @@ def db_to_df(table: str) -> pd.DataFrame:
     df_sql = pd.read_sql("SELECT * FROM " + table, conn)
     conn.close()
 
+    if df_sql.empty:
+        print("The " + table + " table is empty")
+
     return df_sql
 
 def check_project_exists(id: int):
@@ -114,16 +117,29 @@ def delete_project(id: int):
 
 #prints the chosen db table onto the command line
 def view_projects():
-    while True:
-        data = db_to_df("projects")
+    data = db_to_df("projects")
 
-        if data.empty:
-            print("No projects recorded. Try using the 'Add Project' option")
-        else:
-            print()
-            print(data)
+    if data.empty:
+        print("No projects recorded. Try using the 'Add Project' option")
+        print()
+    else:
+        print()
+        print(data)
         
-        break
+    
+def view_tables():
+    view_projects()
+    t2 = db_to_df("technologies")
+    t3 = db_to_df("projtechs")
+    t4 = db_to_df("images")
+    t5 = db_to_df("documents")
+
+    print()
+    print(t2)
+    print(t3)
+    print(t4)
+    print(t5)
+
 
 def add_project_menu():
     while True:
@@ -133,7 +149,7 @@ def add_project_menu():
         print("-" * 50)
 
         title = input("     1. Enter title: ").strip()
-        slug = input("      2. Enter slug: ").strip()
+        slug = input("     2. Enter slug: ").strip()
         description = input("     3. Enter a short description: ").strip()
         problem = input("     4. Enter problem description: ").strip()
         solution = input("     5. Enter solutions: ").strip()
@@ -146,6 +162,7 @@ def add_project_menu():
         ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip()
 
 
+        print()
         done = input("     done? (y/n): ").strip()
 
         # if ready_for_publish == "yes":
@@ -159,9 +176,11 @@ def add_project_menu():
         if done == "y":
             add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
             break
+        else:
+            break
 
 
-def edit_project():
+def edit_project_menu():
     pass
 
 def delete_project_menu():
@@ -197,35 +216,39 @@ def export_db_to_json():
 # MAIN MENU
 
 def main(): 
+
     while True: 
         print()
         print("=" * 50)
         print(" Portfolio Website Project Manager")
         print("=" * 50)
         print("  1. View Projects")
-        print("  2. Add Project")
-        print("  3. Edit Project")
-        print("  4. Delete Project")
-        print("  5. Export JSON")
-        print("  6. Quit")
+        print("  2. View All Tables")
+        print("  3. Add Project")
+        print("  4. Edit Project")
+        print("  5. Delete Project")
+        print("  6. Export JSON")
+        print("  7. Quit")
         print("-" * 50)
 
-        choice = input("    Select an option (1-6): ").strip()
+        choice = input("    Select an option (1-7): ").strip()
 
         if choice == "1":
             view_projects()
         elif choice == "2":
-            add_project_menu()
+            view_tables()
         elif choice == "3":
-            edit_project()
+            add_project_menu()
         elif choice == "4":
-            delete_project_menu()
+            edit_project_menu()
         elif choice == "5":
-            export_db_to_json()
+            delete_project_menu()
         elif choice == "6":
+            export_db_to_json()
+        elif choice == "7":
             break
         else:
-            print(" invalid option chosen. Pick an option from 1-6")
+            print(" invalid option chosen. Pick an option from 1-7")
 
 
 
