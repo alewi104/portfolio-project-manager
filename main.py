@@ -9,7 +9,10 @@ import os
 
 DB_PATH = "portfolio_data.db"
 
-
+# TODO: Add error handling to functions that interact with the database
+# TODO: After the error handling is complete make those functions return a boolean
+# TODO: Add input validation for yes/no and integer inputs. Can try for all str inputs
+# TODO: Add appropriate comments for the file and methods
 
 # DATABASE
 
@@ -74,6 +77,8 @@ def init_db():
     conn.commit()
     conn.close()
 
+# HELPERS
+
 def db_to_df(table: str) -> pd.DataFrame: 
     conn = get_connection()
     df_sql = pd.read_sql("SELECT * FROM " + table, conn)
@@ -84,9 +89,24 @@ def db_to_df(table: str) -> pd.DataFrame:
 
     return df_sql
 
-def check_project_exists(id: int):
+def export_db_to_json():
+    pass
+
+def check_item_exists(id: int, table:str) -> bool:
     conn = get_connection()
-    df_sql = pd.read_sql("SELECT * FROM projects WHERE proj_id = " + id, conn)
+
+    if table == "projects":
+        item_id = "proj_id"
+    elif table == "technologies":
+        item_id = "tech_id"
+    elif table == "images":
+        item_id = "img_id"
+    elif table == "documents":
+        item_id = "doc_id"
+    else:
+        print("Table name does not exist")
+        return
+    df_sql = pd.read_sql("SELECT * FROM " + table + " WHERE " + item_id + "= " + id, conn)
     
     conn.close()
 
@@ -101,18 +121,38 @@ def add_project(slug: str, title: str, thumbnail_alt: str, description: str, thu
     conn.commit()
     conn.close()
 
-def delete_project(id: int):
+def add_technology(name: str): #adds should probably return a succsessful/failed boolean state
+    conn = get_connection()
+    cursor = conn.cursor()
+    query = "INSERT INTO technologies (name) VALUES(?);"
+    cursor.execute(query, (name,))
+
+    conn.commit()
+    conn.close()
+
+def delete_item_by_id(id: int, table: str):
     conn = get_connection()
     cursor = conn.cursor()
 
-    query = "DELETE FROM projects WHERE proj_id = ?"
-    proj_id = id
-    cursor.execute(query, proj_id)
+    if table == "projects":
+        item_id = "proj_id"
+    elif table == "technologies":
+        item_id = "tech_id"
+    elif table == "images":
+        item_id = "img_id"
+    elif table == "documents":
+        item_id = "doc_id"
+    else:
+        print("Table name does not exist")
+        return
+
+    query = "DELETE FROM " + table + " WHERE " + item_id + " = ?"
+
+    cursor.execute(query, id)
 
     conn.commit()
     print(f"Rows deleted: {cursor.rowcount}")
     conn.close()
-
 
 
 #prints the chosen db table onto the command line
@@ -141,7 +181,9 @@ def view_tables():
     print(t5)
 
 
-def add_project_menu():
+# PROMPTS
+
+def add_project_prompt():
     while True:
         print()
         print("-" * 50)
@@ -180,10 +222,10 @@ def add_project_menu():
             break
 
 
-def edit_project_menu():
+def edit_project_prompt():
     pass
 
-def delete_project_menu():
+def delete_project_prompt():
     while True:
         view_projects()
 
@@ -192,31 +234,88 @@ def delete_project_menu():
         if choice == "exit":
             break
 
-        project_exists = check_project_exists(choice)
+        project_exists = check_item_exists(choice, "projects")
 
         if project_exists == False:
             print()
             print("Please select an existing project")
             print()
-            break
+            continue #may need to change back to break
         else:
             confirm = input("   Are you sure you would like to delete project with id: " + choice + "? (yes/no) ").strip()
 
             if confirm == "yes":
-                delete_project(choice)
-                break
+                delete_item_by_id(choice, "projects")
+                continue
             else:
-                break
+                continue
 
+def add_tech_prompt():
+    while True:
+                tech = input("      What technology would you like to add? Type 'exit' to leave ").strip()
+                if tech == "exit":
+                    break
+                
+                confirm = input("       Are you sure you would like to add " + tech + "? (yes/no) ").strip()
+                
+                if confirm == "yes":
+                    add_technology(tech)
+                elif confirm == "no":
+                    continue
+                else:
+                    break # need handling to input either yes or no only
 
+def delete_tech_prompt():
+    while True: 
+        print(db_to_df("technologies"))
 
-def export_db_to_json():
+        tech_id = input("      What technology would you like to remove by id? Type 'exit' to leave ").strip()
+        if tech_id == "exit":
+            break
+        
+        confirm = input("   Are you sure you would like to delete " + tech_id + "? (yes/no) ").strip()
+
+        if confirm == "yes":
+            delete_item_by_id(tech_id, "technologies")
+        elif confirm == "no":
+            continue
+        else:
+            break # need handling to input either yes or no only
+        
+def export_prompt():
     pass
+
+# MENUS
+
+def view_tech_menu():
+    while True:
+        print()
+        print("=" * 50)
+        print(" Technologies Menu")
+        print("=" * 50)
+        print("  1. View Technologies")
+        print("  2. Add Technology")
+        print("  3. Delete Technology")
+        print("  4. Back")
+        print("-" * 50)
+
+        choice = input("    Select an option (1-4): ").strip()
+
+        if choice == "1":
+            print()
+            print(db_to_df("technologies"))
+        elif choice == "2":
+            add_tech_prompt()
+        elif choice == "3":
+            delete_tech_prompt()
+        elif choice == "4":
+            break
+        else:
+            print(" invalid option chosen. Pick an option from 1-4")
 
 # MAIN MENU
 
 def main(): 
-
     while True: 
         print()
         print("=" * 50)
@@ -228,27 +327,30 @@ def main():
         print("  4. Edit Project")
         print("  5. Delete Project")
         print("  6. Export JSON")
-        print("  7. Quit")
+        print("  7. Technologies Menu")
+        print("  8. Quit")
         print("-" * 50)
 
-        choice = input("    Select an option (1-7): ").strip()
+        choice = input("    Select an option (1-8): ").strip()
 
         if choice == "1":
             view_projects()
         elif choice == "2":
             view_tables()
         elif choice == "3":
-            add_project_menu()
+            add_project_prompt()
         elif choice == "4":
-            edit_project_menu()
+            edit_project_prompt()
         elif choice == "5":
-            delete_project_menu()
+            delete_project_prompt()
         elif choice == "6":
             export_db_to_json()
         elif choice == "7":
+            view_tech_menu()
+        elif choice == "8":
             break
         else:
-            print(" invalid option chosen. Pick an option from 1-7")
+            print(" invalid option chosen. Pick an option from 1-8")
 
 
 
