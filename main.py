@@ -13,6 +13,7 @@ DB_PATH = "portfolio_data.db"
 # TODO: After the error handling is complete make those functions return a boolean
 # TODO: Add input validation for yes/no and integer inputs. Can try for all str inputs
 # TODO: Add appropriate comments for the file and methods
+# TODO: conn.close() should be in 'finally' section of error handling try block
 
 # DATABASE
 
@@ -71,6 +72,8 @@ def init_db():
                    proj_id INTEGER,
                    title TEXT,
                    filepath TEXT,
+                   summary TEXT,
+                   display_order INTEGER,
                    FOREIGN KEY (proj_id) REFERENCES projects (proj_id)
                    )
             """)
@@ -112,6 +115,25 @@ def check_item_exists(id: int, table:str) -> bool:
 
     return not df_sql.empty
 
+def move_image(proj_id: int, img_id:int, new_position:int):
+    conn = get_connection()
+    cursor = conn.cursor() 
+    cursor.execute(
+        "SELECT img_id FROM images WHERE proj_id = ? ORDER BY display_order",
+        (proj_id,)
+    )
+    order = [row[0] for row in cursor.fetchall()]
+
+    order.remove(img_id)
+    order.insert(new_position, img_id)
+
+    cursor.executemany(
+        "UPDATE images SET display_order = ? WHERE img_id = ?",
+        [(i, iid) for i, iid in enumerate(order)]
+    )
+
+# ADD HELPERS
+
 def add_project(slug: str, title: str, thumbnail_alt: str, description: str, thumbnail: str, github_link: str, demo_video: str, problem: str, solution: str, lessons_learned: str, architecture: str, ready_for_publish: str):
     conn = get_connection()
     cursor = conn.cursor()
@@ -130,23 +152,77 @@ def add_technology(name: str): #adds should probably return a succsessful/failed
     conn.commit()
     conn.close()
 
+def add_projtech_relationship(proj_id: int, tech_id:int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    query = "INSERT INTO projtechs (proj_id, tech_id) VALUES(?, ?);"
+    cursor.execute(query, (proj_id, tech_id))
+
+    conn.commit()
+    conn.close()
+
+
+def add_image(proj_id:int, filepath:str, caption:str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    count_query = "SELECT COUNT(*) FROM images WHERE proj_id = ?"
+    cursor.execute(count_query, (proj_id,))
+    count = cursor.fetchone()[0]
+
+    query = "INSERT INTO images (proj_id, filepath, caption, display_order) VALUES(?,?,?,?);"
+    cursor.execute(query, (proj_id, filepath, caption, count))
+
+    conn.commit()
+    conn.close()
+
+    return cursor.lastrowid
+
+def add_document(proj_id:int, title: str, filepath:str, summary:str, display_order:int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    query = "INSERT INTO images (proj_id, title, filepath, summary, display_order) VALUES(?,?,?,?,?);"
+    cursor.execute(query, (proj_id, title, filepath, summary, display_order))
+
+    conn.commit()
+    conn.close()
+
+# EDIT HELPERS
+
+def edit_project():
+    pass
+
+def edit_technology():
+    pass
+
+def edit_projtech_relationship():
+    pass
+
+def edit_image():
+    pass
+
+def edit_document():
+    pass
+
+# DELETE HELPER
+
 def delete_item_by_id(id: int, table: str):
     conn = get_connection()
     cursor = conn.cursor()
 
     if table == "projects":
-        item_id = "proj_id"
+        item_id_type = "proj_id"
     elif table == "technologies":
-        item_id = "tech_id"
+        item_id_type = "tech_id"
     elif table == "images":
-        item_id = "img_id"
+        item_id_type = "img_id"
     elif table == "documents":
-        item_id = "doc_id"
+        item_id_type = "doc_id"
     else:
         print("Table name does not exist")
         return
 
-    query = "DELETE FROM " + table + " WHERE " + item_id + " = ?"
+    query = "DELETE FROM " + table + " WHERE " + item_id_type + " = ?"
 
     cursor.execute(query, id)
 
@@ -155,7 +231,7 @@ def delete_item_by_id(id: int, table: str):
     conn.close()
 
 
-#prints the chosen db table onto the command line
+# prints the chosen db table onto the command line
 def view_projects():
     data = db_to_df("projects")
 
@@ -180,8 +256,20 @@ def view_tables():
     print(t4)
     print(t5)
 
+def view_image_display_order_by_project(proj_id: int) -> pd.DataFrame:
+    conn = get_connection()
+    df_sql = pd.read_sql("SELECT * FROM images WHERE proj_id = " + proj_id + " ORDER BY display_order", conn)
+    conn.close()
+
+    if df_sql.empty:
+        print("The images table is empty")
+
+    return df_sql
+
 
 # PROMPTS
+
+# PROJECT PROMPTS
 
 def add_project_prompt():
     while True:
@@ -217,10 +305,23 @@ def add_project_prompt():
         
         if done == "y":
             add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
-            break
+            continue
         else:
-            break
+            continue
+        
+        add_images = input("     Would you like to add images to this project? (yes/no): ").strip()
+        if add_images == "yes":
+            add_image_prompt()
+        elif add_images == "no":
+            continue
+    
+        add_documents = input("     Would you like to add documents to this project? (yes/no): ").strip()
+        if add_document == "yes":
+            add_document_prompt()
+        
 
+
+    
 
 def edit_project_prompt():
     pass
@@ -240,7 +341,7 @@ def delete_project_prompt():
             print()
             print("Please select an existing project")
             print()
-            continue #may need to change back to break
+            continue # may need to change back to break
         else:
             confirm = input("   Are you sure you would like to delete project with id: " + choice + "? (yes/no) ").strip()
 
@@ -250,20 +351,22 @@ def delete_project_prompt():
             else:
                 continue
 
+# TECHNOLOGY PROMPTS
+
 def add_tech_prompt():
     while True:
-                tech = input("      What technology would you like to add? Type 'exit' to leave ").strip()
-                if tech == "exit":
-                    break
+        tech = input("      What technology would you like to add? Type 'exit' to leave ").strip()
+        if tech == "exit":
+            break
                 
-                confirm = input("       Are you sure you would like to add " + tech + "? (yes/no) ").strip()
-                
-                if confirm == "yes":
+        confirm = input("       Are you sure you would like to add " + tech + "? (yes/no) ").strip()
+            
+        if confirm == "yes":
                     add_technology(tech)
-                elif confirm == "no":
-                    continue
-                else:
-                    break # need handling to input either yes or no only
+        elif confirm == "no":
+            continue
+        else:
+            break # need handling to input either yes or no only
 
 def delete_tech_prompt():
     while True: 
@@ -281,11 +384,75 @@ def delete_tech_prompt():
             continue
         else:
             break # need handling to input either yes or no only
+
+# IMAGE PROMPTS
+
+def add_image_prompt():
+    while True:
+        print()
+        print("-" * 50)
+        print("IMAGE ENTRY")
+        print("-" * 50)
+
+        print(db_to_df("projects"))
+        proj_id = input("      Which project would you like to add images to? ").strip()
+        if proj_id == "exit":
+            break
+        
+        while True:
+            filepath = input("      Where is the image located (filepath)? ").strip()
+            caption = input("      Provide a descriptive caption for the image: ").strip()      
+            confirm = input("       Are you sure you would like to add this image? (yes/no/exit) ").strip()
+                
+            if confirm == "yes":
+                display_order = add_image(proj_id, filepath, caption)
+                print(view_image_display_order_by_project(proj_id))
+                print("image display order is #" + display_order + "in gallery ")
+                print()
+            elif confirm == "no":
+                continue
+            elif confirm =="exit":
+                break # need handling to input either yes or no only
+
         
 def export_prompt():
     pass
 
 # MENUS
+
+def edit_project_menu():
+    while True:
+        print(view_projects())
+        proj_id = input("      Which project would you like to edit? ").strip()
+        if proj_id == "exit":
+            break
+        
+        check_item_exists(proj_id, "projects")
+
+        print()
+        print("-" * 50)
+        print("Edit Project Menu")
+        print("-" * 50)
+        print("  1. Edit Project Info")
+        print("  2. Edit Project Images")
+        print("  3. Edit Project Documents")
+        print("  4. Back")
+        print("-" * 50)
+
+        choice = input("      What would you like to edit? Select an option (1-4): ").strip()
+
+        if choice == "1":
+            edit_project_prompt()
+        elif choice == "2":
+            edit_image_prompt()
+        elif choice == "3":
+            edit_document_prompt()
+        elif choice == "4":
+            break
+        else:
+            print(" invalid option chosen. Pick an option from 1-4")
+        
+
 
 def view_tech_menu():
     while True:
@@ -340,7 +507,7 @@ def main():
         elif choice == "3":
             add_project_prompt()
         elif choice == "4":
-            edit_project_prompt()
+            edit_project_menu()
         elif choice == "5":
             delete_project_prompt()
         elif choice == "6":
