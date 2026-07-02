@@ -82,20 +82,20 @@ def init_db():
 
 # HELPERS
 
-def db_to_df(table: str) -> pd.DataFrame: 
+def db_to_df(table: str): 
     conn = get_connection()
     df_sql = pd.read_sql("SELECT * FROM " + table, conn)
     conn.close()
 
     if df_sql.empty:
-        print("The " + table + " table is empty")
-
-    return df_sql
+        return print("The " + table + " table is empty")
+    else:
+        return df_sql
 
 def export_db_to_json():
     pass
 
-def check_item_exists(id: int, table:str) -> bool:
+def check_item_exists(id: int, table:str) -> bool: # add error handling for database errors
     conn = get_connection()
 
     if table == "projects":
@@ -232,29 +232,21 @@ def delete_item_by_id(id: int, table: str):
 
 
 # prints the chosen db table onto the command line
-def view_projects():
-    data = db_to_df("projects")
-
-    if data.empty:
-        print("No projects recorded. Try using the 'Add Project' option")
-        print()
+def view_table(table: str):
+    data = db_to_df(table)
+    print()
+    if data == None:
+        return 
     else:
-        print()
         print(data)
         
     
-def view_tables():
-    view_projects()
-    t2 = db_to_df("technologies")
-    t3 = db_to_df("projtechs")
-    t4 = db_to_df("images")
-    t5 = db_to_df("documents")
-
-    print()
-    print(t2)
-    print(t3)
-    print(t4)
-    print(t5)
+def view_all_tables():
+    view_table("projects")
+    view_table("technologies")
+    view_table("projtechs")
+    view_table("images")
+    view_table("documents")
 
 def view_image_display_order_by_project(proj_id: int) -> pd.DataFrame:
     conn = get_connection()
@@ -328,7 +320,7 @@ def edit_project_prompt():
 
 def delete_project_prompt():
     while True:
-        view_projects()
+        view_table("projects")
 
         choice = input("    Select the project id you'd like to delete: ").strip()
 
@@ -370,7 +362,7 @@ def add_tech_prompt():
 
 def delete_tech_prompt():
     while True: 
-        print(db_to_df("technologies"))
+        view_table("technologies")
 
         tech_id = input("      What technology would you like to remove by id? Type 'exit' to leave ").strip()
         if tech_id == "exit":
@@ -422,12 +414,17 @@ def export_prompt():
 
 def edit_project_menu():
     while True:
-        print(view_projects())
+        view_table("projects")
         proj_id = input("      Which project would you like to edit? ").strip()
         if proj_id == "exit":
             break
         
-        check_item_exists(proj_id, "projects")
+        project_exists = check_item_exists(proj_id, "projects")
+        if project_exists == True:
+            continue
+        else:
+            print("Please pick a project that exists")
+            break
 
         print()
         print("-" * 50)
@@ -470,7 +467,7 @@ def view_tech_menu():
 
         if choice == "1":
             print()
-            print(db_to_df("technologies"))
+            view_table("technologies")
         elif choice == "2":
             add_tech_prompt()
         elif choice == "3":
@@ -501,9 +498,9 @@ def main():
         choice = input("    Select an option (1-8): ").strip()
 
         if choice == "1":
-            view_projects()
+            view_table("projects")
         elif choice == "2":
-            view_tables()
+            view_all_tables()
         elif choice == "3":
             add_project_prompt()
         elif choice == "4":
