@@ -14,6 +14,7 @@ DB_PATH = "portfolio_data.db"
 # TODO: Add input validation for yes/no and integer inputs. Can try for all str inputs
 # TODO: Add appropriate comments for the file and methods
 # TODO: conn.close() should be in 'finally' section of error handling try block
+# TODO: maybe utilize a project object to store a projects attributes in memory
 
 # DATABASE
 
@@ -51,8 +52,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS projtechs (
                    proj_id INTEGER,
                    tech_id INTEGER,
-                   FOREIGN KEY (proj_id) REFERENCES projects (proj_id),
-                   FOREIGN KEY (tech_id) REFERENCES technologies (tech_id)
+                   FOREIGN KEY (proj_id) REFERENCES projects (proj_id) ON DELETE CASCADE,
+                   FOREIGN KEY (tech_id) REFERENCES technologies (tech_id) ON DELETE CASCADE
 
                 )
             """)
@@ -63,7 +64,7 @@ def init_db():
                    filepath TEXT,
                    caption TEXT,
                    display_order INTEGER,
-                   FOREIGN KEY (proj_id) REFERENCES projects (proj_id)
+                   FOREIGN KEY (proj_id) REFERENCES projects (proj_id) ON DELETE CASCADE
                 )
             """)
     cursor.execute("""
@@ -74,7 +75,7 @@ def init_db():
                    filepath TEXT,
                    summary TEXT,
                    display_order INTEGER,
-                   FOREIGN KEY (proj_id) REFERENCES projects (proj_id)
+                   FOREIGN KEY (proj_id) REFERENCES projects (proj_id) ON DELETE CASCADE
                    )
             """)
     conn.commit()
@@ -209,6 +210,7 @@ def edit_document():
 def delete_item_by_id(id: int, table: str):
     conn = get_connection()
     cursor = conn.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON;")
 
     if table == "projects":
         item_id_type = "proj_id"
@@ -298,18 +300,17 @@ def add_project_prompt():
         
         if done == "y":
             add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
-        else:
-            continue
-        
-        add_images = input("     Would you like to add images to this project? (yes/no): ").strip()
-        if add_images == "yes":
-            add_image_prompt()
-        elif add_images == "no":
-            continue
-    
-        add_documents = input("     Would you like to add documents to this project? (yes/no): ").strip()
-        if add_document == "yes":
-            add_document_prompt()
+            add_images = input("     Would you like to add images to this project? (yes/no): ").strip()
+            if add_images == "yes":
+                add_image_prompt()
+            elif add_images == "no":
+                continue
+
+            add_documents = input("     Would you like to add documents to this project? (yes/no): ").strip()
+            if add_document == "yes":
+                add_document_prompt()
+            elif add_document == "no":
+                break
         
 
 
@@ -399,9 +400,9 @@ def add_image_prompt():
             confirm = input("       Are you sure you would like to add this image? (yes/no/exit) ").strip()
                 
             if confirm == "yes":
-                display_order = add_image(proj_id, filepath, caption)
+                display_order = str(add_image(proj_id, filepath, caption))
                 print(view_image_display_order_by_project(proj_id))
-                print("image display order is #" + display_order + "in gallery ")
+                print("image display order is #" + display_order + " in gallery ")
                 print()
             elif confirm == "no":
                 continue
@@ -425,10 +426,7 @@ def edit_project_menu():
         if proj_id == "exit":
             break
         
-        project_exists = check_item_exists(proj_id, "projects")
-        if project_exists == True:
-            continue
-        else:
+        if check_item_exists(proj_id, "projects") == False:
             print("Please pick a project that exists")
             break
 
