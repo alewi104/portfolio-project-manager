@@ -82,15 +82,15 @@ def init_db():
 
 # HELPERS
 
-def db_to_df(table: str): 
+def db_to_df(table: str) -> pd.DataFrame: 
     conn = get_connection()
     df_sql = pd.read_sql("SELECT * FROM " + table, conn)
     conn.close()
 
     if df_sql.empty:
-        return print("The " + table + " table is empty")
-    else:
-        return df_sql
+        print("The " + table + " table is empty")
+    
+    return df_sql
 
 def export_db_to_json():
     pass
@@ -232,13 +232,14 @@ def delete_item_by_id(id: int, table: str):
 
 
 # prints the chosen db table onto the command line
-def view_table(table: str):
+def view_table(table: str) -> bool:
     data = db_to_df(table)
     print()
-    if data == None:
-        return 
+    if data.empty:
+        return False
     else:
         print(data)
+        return True
         
     
 def view_all_tables():
@@ -297,7 +298,6 @@ def add_project_prompt():
         
         if done == "y":
             add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
-            continue
         else:
             continue
         
@@ -320,7 +320,9 @@ def edit_project_prompt():
 
 def delete_project_prompt():
     while True:
-        view_table("projects")
+        if view_table("projects") == False:
+            print("There are no projects to delete. Try creating one first")
+            break
 
         choice = input("    Select the project id you'd like to delete: ").strip()
 
@@ -414,7 +416,11 @@ def export_prompt():
 
 def edit_project_menu():
     while True:
-        view_table("projects")
+
+        if view_table("projects") == False:
+            print("There are no projects to edit. Try creating one first")
+            break
+
         proj_id = input("      Which project would you like to edit? ").strip()
         if proj_id == "exit":
             break
@@ -496,6 +502,7 @@ def main():
         print("-" * 50)
 
         choice = input("    Select an option (1-8): ").strip()
+        print()
 
         if choice == "1":
             view_table("projects")
