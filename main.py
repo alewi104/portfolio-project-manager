@@ -116,17 +116,27 @@ def check_item_exists(id: int, table:str) -> bool: # add error handling for data
 
     return not df_sql.empty
 
-def move_image(proj_id: int, img_id:int, new_position:int):
+def move_image_or_document(proj_id: int, item_id:int, item_type: str, new_position:int):
     conn = get_connection()
-    cursor = conn.cursor() 
-    cursor.execute(
-        "SELECT img_id FROM images WHERE proj_id = ? ORDER BY display_order",
-        (proj_id,)
-    )
+    cursor = conn.cursor()
+
+    if item_type == "image":
+        item_id_type = "img_id"
+        table = "images"
+    elif item_id_type == "document":
+        item_type_id = "doc_id"
+        table = "documents"
+    else:
+        print("Item type not found")
+
+
+    query = "SELECT " + item_id_type + " FROM " + table + " WHERE proj_id = ? ORDER BY display_order"
+    cursor.execute(query, (proj_id,))
+
     order = [row[0] for row in cursor.fetchall()]
 
-    order.remove(img_id)
-    order.insert(new_position, img_id)
+    order.remove(item_id)
+    order.insert(new_position, item_id)
 
     cursor.executemany(
         "UPDATE images SET display_order = ? WHERE img_id = ?",
@@ -179,14 +189,21 @@ def add_image(proj_id:int, filepath:str, caption:str):
 
     return cursor.lastrowid
 
-def add_document(proj_id:int, title: str, filepath:str, summary:str, display_order:int):
+def add_document(proj_id:int, title: str, filepath:str, summary:str):
     conn = get_connection()
     cursor = conn.cursor()
-    query = "INSERT INTO images (proj_id, title, filepath, summary, display_order) VALUES(?,?,?,?,?);"
-    cursor.execute(query, (proj_id, title, filepath, summary, display_order))
+
+    count_query = "SELECT COUNT(*) FROM documents WHERE proj_id = ?"
+    cursor.execute(count_query, (proj_id,))
+    count = cursor.fetchone()[0]
+
+    query = "INSERT INTO documents (proj_id, title, filepath, summary, display_order) VALUES(?,?,?,?,?);"
+    cursor.execute(query, (proj_id, title, filepath, summary, count))
 
     conn.commit()
     conn.close()
+
+    return cursor.lastrowid
 
 # EDIT HELPERS
 
@@ -251,13 +268,13 @@ def view_all_tables():
     view_table("images")
     view_table("documents")
 
-def view_image_display_order_by_project(proj_id: int) -> pd.DataFrame:
+def view_item_display_order_by_project(proj_id: int, table: str) -> pd.DataFrame:
     conn = get_connection()
-    df_sql = pd.read_sql("SELECT * FROM images WHERE proj_id = " + proj_id + " ORDER BY display_order", conn)
+    df_sql = pd.read_sql("SELECT * FROM " + table + " WHERE proj_id = " + proj_id + " ORDER BY display_order", conn)
     conn.close()
 
     if df_sql.empty:
-        print("The images table is empty")
+        print("The " + table + " table is empty")
 
     return df_sql
 
@@ -267,50 +284,59 @@ def view_image_display_order_by_project(proj_id: int) -> pd.DataFrame:
 # PROJECT PROMPTS
 
 def add_project_prompt():
-    while True:
-        print()
-        print("-" * 50)
-        print("PROJECT ENTRY")
-        print("-" * 50)
+    print()
+    print("-" * 50)
+    print("PROJECT ENTRY")
+    print("-" * 50)
 
-        title = input("     1. Enter title: ").strip()
-        slug = input("     2. Enter slug: ").strip()
-        description = input("     3. Enter a short description: ").strip()
-        problem = input("     4. Enter problem description: ").strip()
-        solution = input("     5. Enter solutions: ").strip()
-        lessons_learned = input("     6. Enter the lessons learned: ").strip()
-        architecture = input("     7. Enter architecture: ").strip()
-        thumbnail = input("     8. Enter thumbnail url: ").strip()
-        thumbnail_alt = input("     9. Enter thumbnail alt description: ").strip()
-        github_link = input("     10. Enter github repo url: ").strip()
-        demo_video = input("     11. Enter a demo video url: ").strip()
-        ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip()
+    title = input("     1. Enter title: ").strip()
+    slug = input("     2. Enter slug: ").strip()
+    description = input("     3. Enter a short description: ").strip()
+    problem = input("     4. Enter problem description: ").strip()
+    solution = input("     5. Enter solutions: ").strip()
+    lessons_learned = input("     6. Enter the lessons learned: ").strip()
+    architecture = input("     7. Enter architecture: ").strip()
+    thumbnail = input("     8. Enter thumbnail url: ").strip()
+    thumbnail_alt = input("     9. Enter thumbnail alt description: ").strip()
+    github_link = input("     10. Enter github repo url: ").strip()
+    demo_video = input("     11. Enter a demo video url: ").strip()
+    ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip()
 
 
-        print()
-        done = input("     done? (y/n): ").strip()
+    print()
+    done = input("     done? (y/n): ").strip()
 
-        # if ready_for_publish == "yes":
-        #     ready_for_publish = True
-        # elif ready_for_publish == "no":
-        #     ready_for_publish = False
-        # else:
-        #     print("a yes or no only")
-        #     continue
-        
-        if done == "y":
-            add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
-            add_images = input("     Would you like to add images to this project? (yes/no): ").strip()
-            if add_images == "yes":
-                add_image_prompt()
-            elif add_images == "no":
-                continue
+    # if ready_for_publish == "yes":
+    #     ready_for_publish = True
+    # elif ready_for_publish == "no":
+    #     ready_for_publish = False
+    # else:
+    #     print("a yes or no only")
+    #     continue
+    
+    if done == "y":
+        add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
+        add_images = input("     Would you like to add images to this project? (yes/no): ").strip()
+        if add_images == "yes":
+            add_image_prompt()
+        #elif add_images == "no":
+            
 
-            add_documents = input("     Would you like to add documents to this project? (yes/no): ").strip()
-            if add_document == "yes":
-                add_document_prompt()
-            elif add_document == "no":
-                break
+        add_documents = input("     Would you like to add documents to this project? (yes/no): ").strip()
+        if add_documents == "yes":
+            add_document_prompt()
+        #elif add_documents == "no":
+
+        add_technologies = input("     Would you like to add technologies to this project? (yes/no): ").strip()
+        if add_technologies == "yes":
+            add_projtech_relationship_prompt()
+        elif add_technologies == "no":
+            return
+    elif done == "n":
+        return print("Project addition aborted")
+    
+    return
+    
         
 
 
@@ -389,19 +415,24 @@ def add_image_prompt():
         print("IMAGE ENTRY")
         print("-" * 50)
 
-        print(db_to_df("projects"))
+        view_table("projects")
         proj_id = input("      Which project would you like to add images to? ").strip()
         if proj_id == "exit":
             break
         
+        if check_item_exists(proj_id, "projects") == False:
+            print("Please pick a project that exists")
+            break
+        
         while True:
+            print("Adding Image to Project id " + proj_id)
             filepath = input("      Where is the image located (filepath)? ").strip()
             caption = input("      Provide a descriptive caption for the image: ").strip()      
             confirm = input("       Are you sure you would like to add this image? (yes/no/exit) ").strip()
                 
             if confirm == "yes":
                 display_order = str(add_image(proj_id, filepath, caption))
-                print(view_image_display_order_by_project(proj_id))
+                print(view_item_display_order_by_project(proj_id, "images"))
                 print("image display order is #" + display_order + " in gallery ")
                 print()
             elif confirm == "no":
@@ -409,7 +440,81 @@ def add_image_prompt():
             elif confirm =="exit":
                 break # need handling to input either yes or no only
 
+# DOCUMENT PROMPTS
+def add_document_prompt():
+    while True:
+        print()
+        print("-" * 50)
+        print("DOCUMENT ENTRY")
+        print("-" * 50)
+
+        view_table("projects")
+        proj_id = input("      Which project would you like to add documents to? ").strip()
+        if proj_id == "exit":
+            break
         
+        if check_item_exists(proj_id, "projects") == False:
+            print("Please pick a project that exists")
+            break
+        
+        while True:
+            print("Adding Document to Project id " + proj_id)
+            title = input("      What is the document's title? ").strip()
+            filepath = input("      Where is the document located (filepath)? ").strip()
+            summary = input("      Provide a descriptive summary for the document: ").strip()      
+            confirm = input("       Are you sure you would like to add this document? (yes/no/exit) ").strip()
+                
+            if confirm == "yes":
+                display_order = str(add_document(proj_id, title, filepath, summary))
+                print(view_item_display_order_by_project(proj_id, "documents"))
+                print("document display order is #" + display_order + " in gallery ")
+                print()
+            elif confirm == "no":
+                continue
+            elif confirm =="exit":
+                break # need handling to input either yes or no only
+
+# PROJTECH RELATIONSHIP PROMPTS
+def add_projtech_relationship_prompt():
+    while True:
+        print()
+        print("-" * 50)
+        print("PROJECT TECHNOLOGY ENTRY")
+        print("-" * 50)
+
+        view_table("projects")
+        proj_id = input("      Which project would you like to add technologies to? ").strip()
+        if proj_id == "exit":
+            break
+        
+        if check_item_exists(proj_id, "projects") == False:
+            print("Please pick a project that exists")
+            break
+        
+        while True:
+            print("Adding Document to Project id " + proj_id)
+
+            if view_table("technologies") == False:
+                print("There are no technologies to choose from. ")
+                choice = input("      Would you like to add some? (yes/no)").strip()
+
+                if choice == "yes":
+                    add_tech_prompt()
+                    continue
+                elif choice == "no":
+                    break
+            
+            tech_id = input("      Which technology would you like to add? Provide id: ").strip()
+            if tech_id == "exit":
+                break
+            add_projtech_relationship(proj_id, tech_id)
+            continue
+
+
+
+
+
+
 def export_prompt():
     pass
 
