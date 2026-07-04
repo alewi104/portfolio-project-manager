@@ -110,7 +110,7 @@ def check_item_exists(id: int, table:str) -> bool: # add error handling for data
         item_id = "doc_id"
     else:
         print("Table name does not exist")
-        return
+        return False
     df_sql = pd.read_sql("SELECT * FROM " + table + " WHERE " + item_id + "= " + id, conn)
     
     conn.close()
@@ -124,8 +124,8 @@ def move_image_or_document(proj_id: int, item_id:int, item_type: str, new_positi
     if item_type == "image":
         item_id_type = "img_id"
         table = "images"
-    elif item_id_type == "document":
-        item_type_id = "doc_id"
+    elif item_type == "document":
+        item_id_type = "doc_id"
         table = "documents"
     else:
         print("Item type not found")
@@ -136,6 +136,16 @@ def move_image_or_document(proj_id: int, item_id:int, item_type: str, new_positi
 
     order = [row[0] for row in cursor.fetchall()]
 
+    print(item_id, type(item_id))
+    print(order)
+    print([type(x) for x in order])
+    
+    if item_id not in order:
+        raise ValueError(
+            f"{item_type} {item_id} not found in project {proj_id}. "
+            f"Items found: {order}"
+    )
+
     order.remove(item_id)
     order.insert(new_position, item_id)
 
@@ -143,6 +153,9 @@ def move_image_or_document(proj_id: int, item_id:int, item_type: str, new_positi
         "UPDATE images SET display_order = ? WHERE img_id = ?",
         [(i, iid) for i, iid in enumerate(order)]
     )
+
+    conn.commit()
+    conn.close()
 
 # ADD HELPERS
 
@@ -256,6 +269,7 @@ def edit_technology(tech_id: int, name: str):
     conn.close()
     
 
+# Come back to reporpose this 
 def edit_projtech_relationship(proj_id: int, tech_id:int):
     conn = get_connection()
     cursor = conn.cursor()
@@ -266,28 +280,28 @@ def edit_projtech_relationship(proj_id: int, tech_id:int):
     conn.commit()
     conn.close()
 
-def edit_image(proj_id:int, filepath:str, caption:str):
+def edit_image(img_id:int, filepath:str, caption:str):
     conn = get_connection()
     cursor = conn.cursor()
 
     if filepath is not None:
-        cursor.execute("UPDATE images SET filepath = ? WHERE proj_id = ?", (filepath, proj_id))
+        cursor.execute("UPDATE images SET filepath = ? WHERE img_id = ?", (filepath, img_id))
     if caption is not None: 
-        cursor.execute("UPDATE images SET caption = ? WHERE proj_id = ?", (caption, proj_id))
+        cursor.execute("UPDATE images SET caption = ? WHERE img_id = ?", (caption, img_id))
 
     conn.commit()
     conn.close()
 
-def edit_document(proj_id:int, title: str, filepath:str, summary:str):
+def edit_document(doc_id:int, title: str, filepath:str, summary:str):
     conn = get_connection()
     cursor = conn.cursor()
 
     if filepath is not None:
-        cursor.execute("UPDATE documents SET filepath = ? WHERE proj_id = ?", (filepath, proj_id))
+        cursor.execute("UPDATE documents SET filepath = ? WHERE doc_id = ?", (filepath, doc_id))
     if title is not None: 
-        cursor.execute("UPDATE documents SET title = ? WHERE proj_id = ?", (title, proj_id))
+        cursor.execute("UPDATE documents SET title = ? WHERE doc_id = ?", (title, doc_id))
     if summary is not None: 
-        cursor.execute("UPDATE documents SET summary = ? WHERE proj_id = ?", (summary, proj_id))
+        cursor.execute("UPDATE documents SET summary = ? WHERE doc_id = ?", (summary, doc_id))
 
     conn.commit()
     conn.close()
@@ -546,17 +560,18 @@ def delete_tech_prompt():
 
 # IMAGE PROMPTS
 
-def add_image_prompt():
+def add_image_prompt(proj_id=None):
     while True:
         print()
         print("-" * 50)
         print("IMAGE ENTRY")
         print("-" * 50)
 
-        view_table("projects")
-        proj_id = input("      Which project would you like to add images to? ").strip()
-        if proj_id == "exit":
-            break
+        if proj_id is None:
+            view_table("projects")
+            proj_id = input("      Which project would you like to add images to? ").strip()
+            if proj_id == "exit":
+                break
         
         if check_item_exists(proj_id, "projects") == False:
             print("Please pick a project that exists")
@@ -577,6 +592,47 @@ def add_image_prompt():
                 continue
             elif confirm =="exit":
                 break # need handling to input either yes or no only
+
+def edit_image_prompt(proj_id: int):
+    while True:
+        print(view_item_display_order_by_project(proj_id, "images"))
+        img_id = input("      Which image would you like to edit? ").strip()
+        if img_id == "exit":
+            break
+        
+        if check_item_exists(img_id, "images") == False:
+            print("Please pick an image that exists")
+            break
+        
+        while True:
+            print("Editing image with id: " + img_id)
+            filepath = input("      Where is the image located (new filepath)? ").strip()
+            caption = input("      Provide a new descriptive caption for the image: ").strip()
+            display_order = input("      New display order (#): ").strip()
+            confirm = input("       Are you sure you would like to save this image edit? (yes/no/exit) ").strip()
+
+            if filepath == "":
+                filepath = None
+            if caption  == "":
+                caption = None
+                
+            
+            if confirm == "yes":
+                edit_image(img_id, filepath, caption)
+
+                if display_order != "":
+                    display_order = int(display_order)
+                    move_image_or_document(proj_id, int(img_id), "image", display_order)
+                break
+
+            elif confirm == "no":
+                continue
+            elif confirm =="exit":
+                break # need handling to input either yes or no only
+        
+
+
+
 
 # DOCUMENT PROMPTS
 def add_document_prompt():
@@ -689,7 +745,28 @@ def edit_project_menu():
         if choice == "1":
             edit_project_prompt(proj_id)
         elif choice == "2":
-            edit_image_prompt(proj_id)
+            print()
+            print("-" * 50)
+            print("Options")
+            print("-" * 50)
+            print("  1. Edit Project Image")
+            print("  2. Add New Images to the Project")
+            print("  3. Delete Project Image")
+            print("  4. Back")
+            print("-" * 50)
+
+            img_choice = input("      What would you like to edit for project id:" + proj_id + "? Select an option (1-5): ").strip()
+
+            if img_choice == "1":
+                edit_image_prompt(proj_id)
+            elif img_choice == "2":
+                add_image_prompt(proj_id)
+            elif img_choice == "4":
+                break
+            else:
+                print("Please pick an option (1-4)")
+            
+
         elif choice == "3":
             edit_document_prompt(proj_id)
         elif choice == "4":
@@ -698,6 +775,7 @@ def edit_project_menu():
             break
         else:
             print(" invalid option chosen. Pick an option from 1-4")
+
         
 
 
