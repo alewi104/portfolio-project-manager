@@ -244,17 +244,53 @@ def edit_project(proj_id: int, slug: str, title: str, thumbnail_alt: str, descri
     conn.close()
 
 
-def edit_technology():
-    pass
+def edit_technology(tech_id: int, name: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    # may have to add foreign key pragma
 
-def edit_projtech_relationship():
-    pass
+    if name is not None:
+        cursor.execute("UPDATE technologies SET name = ? WHERE tech_id  = ", (name, tech_id))
+    
+    conn.commit()
+    conn.close()
+    
 
-def edit_image():
-    pass
+def edit_projtech_relationship(proj_id: int, tech_id:int):
+    conn = get_connection()
+    cursor = conn.cursor()
 
-def edit_document():
-    pass
+    if tech_id is not None:
+        cursor.execute("UPDATE projtechs SET tech_id = ? WHERE proj_id = ?", (tech_id, proj_id))
+
+    conn.commit()
+    conn.close()
+
+def edit_image(proj_id:int, filepath:str, caption:str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if filepath is not None:
+        cursor.execute("UPDATE images SET filepath = ? WHERE proj_id = ?", (filepath, proj_id))
+    if caption is not None: 
+        cursor.execute("UPDATE images SET caption = ? WHERE proj_id = ?", (caption, proj_id))
+
+    conn.commit()
+    conn.close()
+
+def edit_document(proj_id:int, title: str, filepath:str, summary:str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if filepath is not None:
+        cursor.execute("UPDATE documents SET filepath = ? WHERE proj_id = ?", (filepath, proj_id))
+    if title is not None: 
+        cursor.execute("UPDATE documents SET title = ? WHERE proj_id = ?", (title, proj_id))
+    if summary is not None: 
+        cursor.execute("UPDATE documents SET summary = ? WHERE proj_id = ?", (summary, proj_id))
+
+    conn.commit()
+    conn.close()
 
 # DELETE HELPER
 
