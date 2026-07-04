@@ -15,6 +15,7 @@ DB_PATH = "portfolio_data.db"
 # TODO: Add appropriate comments for the file and methods
 # TODO: conn.close() should be in 'finally' section of error handling try block
 # TODO: maybe utilize a project object to store a projects attributes in memory
+# TODO: fix in gallery enumeration. Displays item's entire table index instead of per project 
 
 # DATABASE
 
@@ -145,7 +146,7 @@ def move_image_or_document(proj_id: int, item_id:int, item_type: str, new_positi
 
 # ADD HELPERS
 
-def add_project(slug: str, title: str, thumbnail_alt: str, description: str, thumbnail: str, github_link: str, demo_video: str, problem: str, solution: str, lessons_learned: str, architecture: str, ready_for_publish: str):
+def add_project(slug: str, title: str, thumbnail_alt: str, description: str, thumbnail: str, github_link: str, demo_video: str, problem: str, solution: str, lessons_learned: str, architecture: str, ready_for_publish: bool):
     conn = get_connection()
     cursor = conn.cursor()
     query = "INSERT INTO projects (slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish) VALUES(?,?,?,?,?,?,?,?,?,?,?,?);" 
@@ -187,7 +188,7 @@ def add_image(proj_id:int, filepath:str, caption:str):
     conn.commit()
     conn.close()
 
-    return cursor.lastrowid
+    return count
 
 def add_document(proj_id:int, title: str, filepath:str, summary:str):
     conn = get_connection()
@@ -203,12 +204,45 @@ def add_document(proj_id:int, title: str, filepath:str, summary:str):
     conn.commit()
     conn.close()
 
-    return cursor.lastrowid
+    return count
 
 # EDIT HELPERS
 
-def edit_project():
-    pass
+# def edit_project_info_query(attribute: str, proj_id: int) -> str:
+#     query = "UPDATE projects SET title = ? WHERE proj_id = ?"
+
+def edit_project(proj_id: int, slug: str, title: str, thumbnail_alt: str, description: str, thumbnail: str, github_link: str, demo_video: str, problem: str, solution: str, lessons_learned: str, architecture: str, ready_for_publish: bool):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    if title is not None:
+        cursor.execute("UPDATE projects SET title = ? WHERE proj_id = ?", (title, proj_id))
+    if slug is not None:
+        cursor.execute("UPDATE projects SET slug = ? WHERE proj_id = ?", (slug, proj_id))
+    if description is not None:
+        cursor.execute("UPDATE projects SET description = ? WHERE proj_id = ?", (description, proj_id))
+    if problem is not None:
+        cursor.execute("UPDATE projects SET problem = ? WHERE proj_id = ?", (problem, proj_id))
+    if solution is not None:
+        cursor.execute("UPDATE projects SET solution = ? WHERE proj_id = ?", (solution, proj_id))
+    if lessons_learned is not None:
+        cursor.execute("UPDATE projects SET lessons_learned = ? WHERE proj_id = ?", (lessons_learned, proj_id))
+    if architecture is not None:
+        cursor.execute("UPDATE projects SET architecture = ? WHERE proj_id = ?", (architecture, proj_id))
+    if thumbnail is not None:
+        cursor.execute("UPDATE projects SET thumbnail = ? WHERE proj_id = ?", (thumbnail, proj_id))
+    if thumbnail_alt is not None:
+        cursor.execute("UPDATE projects SET thumbnail_alt = ? WHERE proj_id = ?", (thumbnail_alt, proj_id))
+    if github_link is not None:
+        cursor.execute("UPDATE projects SET github_link = ? WHERE proj_id = ?", (github_link, proj_id))
+    if demo_video is not None:
+        cursor.execute("UPDATE projects SET demo_video = ? WHERE proj_id = ?", (demo_video, proj_id))
+    if ready_for_publish is not None:
+        cursor.execute("UPDATE projects SET ready_for_publish = ? WHERE proj_id = ?", (ready_for_publish, proj_id))
+    
+    conn.commit()
+    conn.close()
+
 
 def edit_technology():
     pass
@@ -278,6 +312,18 @@ def view_item_display_order_by_project(proj_id: int, table: str) -> pd.DataFrame
 
     return df_sql
 
+def view_item(proj_id: int, table: str) -> bool:
+    conn = get_connection()
+    df_sql = pd.read_sql("SELECT * FROM " + table + " WHERE proj_id = " + proj_id , conn)
+    conn.close()
+
+    if df_sql.empty:
+        print("The item can not be found")
+        return False
+    else:
+        print(df_sql)
+        return True
+
 
 # PROMPTS
 
@@ -330,20 +376,76 @@ def add_project_prompt():
         add_technologies = input("     Would you like to add technologies to this project? (yes/no): ").strip()
         if add_technologies == "yes":
             add_projtech_relationship_prompt()
-        elif add_technologies == "no":
-            return
+        #elif add_technologies == "no":
+        #    return print("Project created")
     elif done == "n":
-        return print("Project addition aborted")
+        return print("PROJECT ABORTED")
     
-    return
+    return print("PROJECT CREATED")
     
+
+def edit_project_prompt(proj_id: int):
+    print()
+    print("-" * 50)
+    print("PROJECT EDIT ENTRY")
+    print("-" * 50)
+
+    if view_item(proj_id, "projects") == False:
+        return print("PROJECT EDIT ABORTED")
+    print("Leave blank if you wish to keep an option as is")
+
+    title = input("     1. Enter new title: ").strip()
+    slug = input("     2. Enter new slug: ").strip()
+    description = input("     3. Enter a new short description: ").strip()
+    problem = input("     4. Enter new problem description: ").strip()
+    solution = input("     5. Enter new solutions: ").strip()
+    lessons_learned = input("     6. Enter the new lessons learned: ").strip()
+    architecture = input("     7. Enter new architecture: ").strip()
+    thumbnail = input("     8. Enter a new thumbnail url: ").strip()
+    thumbnail_alt = input("     9. Enter a new thumbnail alt description: ").strip()
+    github_link = input("     10. Enter a new github repo url: ").strip()
+    demo_video = input("     11. Enter a new demo video url: ").strip()
+    ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip()
+
+
+    print()
+    done = input("     done? (y/n): ").strip()
+
+    if title == "":
+        title = None
+    if slug == "":
+        slug = None
+    if description == "":
+        description = None
+    if problem == "":
+        problem = None
+    if solution == "":
+        solution = None
+    if lessons_learned == "":
+        lessons_learned = None
+    if architecture == "":
+        architecture = None
+    if thumbnail == "":
+        thumbnail = None
+    if thumbnail_alt == "":
+        thumbnail_alt = None
+    if github_link == "":
+        github_link = None
+    if demo_video == "":
+        demo_video = None
+    if ready_for_publish == "":
+        ready_for_publish = None
+    
+
+    if done == "y":
+        edit_project(proj_id, slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
+    elif done == "n":
+        return print("PROJECT EDIT ABORTED")
+    
+    return print("PROJECT EDIT SAVED")
+
         
 
-
-    
-
-def edit_project_prompt():
-    pass
 
 def delete_project_prompt():
     while True:
@@ -542,18 +644,21 @@ def edit_project_menu():
         print("  1. Edit Project Info")
         print("  2. Edit Project Images")
         print("  3. Edit Project Documents")
-        print("  4. Back")
+        print("  4. Edit Project Technologies")
+        print("  5. Back")
         print("-" * 50)
 
-        choice = input("      What would you like to edit? Select an option (1-4): ").strip()
+        choice = input("      What would you like to edit for project id1" + proj_id + "? Select an option (1-5): ").strip()
 
         if choice == "1":
-            edit_project_prompt()
+            edit_project_prompt(proj_id)
         elif choice == "2":
-            edit_image_prompt()
+            edit_image_prompt(proj_id)
         elif choice == "3":
-            edit_document_prompt()
+            edit_document_prompt(proj_id)
         elif choice == "4":
+            edit_technologies_prompt(proj_id)
+        elif choice == "5":
             break
         else:
             print(" invalid option chosen. Pick an option from 1-4")
