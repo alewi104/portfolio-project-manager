@@ -327,11 +327,22 @@ def delete_item_by_id(id: int, table: str):
 
     query = "DELETE FROM " + table + " WHERE " + item_id_type + " = ?"
 
-    cursor.execute(query, id)
+    cursor.execute(query, (id,))
 
     conn.commit()
     print(f"Rows deleted: {cursor.rowcount}")
     conn.close()
+
+def delete_projtech_relationship(proj_id, tech_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    query = "DELETE FROM projtechs WHERE proj_id = ? AND tech_id = ?"
+
+    cursor.execute(query, (proj_id, tech_id))
+    conn.commit()
+    print(f"Rows deleted: {cursor.rowcount}")
+    conn.close()
+
 
 
 # prints the chosen db table onto the command line
@@ -376,6 +387,17 @@ def view_item(proj_id: int, table: str) -> bool:
         print(df_sql)
         return True
 
+def view_projtech_relationships(proj_id: int) -> bool:
+    conn = get_connection()
+    df_sql = pd.read_sql("SELECT * FROM projtechs p INNER JOIN technologies t ON p.tech_id = t.tech_id WHERE proj_id = " + proj_id, conn)
+    conn.close()
+
+    if df_sql.empty:
+        print("This project has no assigned technologies")
+        return False
+    else:
+        print(df_sql)
+        return True
 
 # PROMPTS
 
@@ -754,24 +776,25 @@ def delete_document_prompt(proj_id: int):
             continue
 
 # PROJTECH RELATIONSHIP PROMPTS
-def add_projtech_relationship_prompt():
+def add_projtech_relationship_prompt(proj_id=None):
     while True:
         print()
         print("-" * 50)
         print("PROJECT TECHNOLOGY ENTRY")
         print("-" * 50)
 
-        view_table("projects")
-        proj_id = input("      Which project would you like to add technologies to? ").strip()
-        if proj_id == "exit":
-            break
+        if proj_id is None:
+            view_table("projects")
+            proj_id = input("      Which project would you like to add technologies to? ").strip()
+            if proj_id == "exit":
+                break
         
         if check_item_exists(proj_id, "projects") == False:
             print("Please pick a project that exists")
             break
         
         while True:
-            print("Adding Document to Project id " + proj_id)
+            print("Adding Technology to Project id " + proj_id)
 
             if view_table("technologies") == False:
                 print("There are no technologies to choose from. ")
@@ -788,6 +811,36 @@ def add_projtech_relationship_prompt():
                 break
             add_projtech_relationship(proj_id, tech_id)
             continue
+
+def delete_projtech_relationship_prompt(proj_id=None):
+    while True:
+        print()
+        print("-" * 50)
+        print("PROJECT TECHNOLOGY ENTRY")
+        print("-" * 50)
+
+        if proj_id is None:
+            view_table("projects")
+            proj_id = input("      Which project would you like to add technologies to? ").strip()
+            if proj_id == "exit":
+                break
+        
+        if check_item_exists(proj_id, "projects") == False:
+            print("Please pick a project that exists")
+            break
+        
+        while True:
+            print("Deleting Technology from Project id " + proj_id)
+
+            if view_projtech_relationships(proj_id) == False:
+                print("There are no technologies to choose from. ")
+            
+            tech_id = input("      Which technology would you like to delete? Provide id: ").strip()
+            if tech_id == "exit":
+                break
+            delete_projtech_relationship(proj_id, tech_id)
+            continue
+
 
 
 def export_prompt():
@@ -830,7 +883,7 @@ def edit_project_menu():
         elif choice == "3":
             edit_document_menu(proj_id)
         elif choice == "4":
-            edit_technologies_prompt(proj_id)
+            edit_projtech_menu(proj_id)
         elif choice == "5":
             break
         else:
@@ -886,6 +939,27 @@ def edit_document_menu(proj_id: int):
         else:
             print("Please pick an option (1-4)")
         
+def edit_projtech_menu(proj_id: int):
+    while True:
+        print()
+        print("-" * 50)
+        print("Options")
+        print("-" * 50)
+        print("  1. Add Technologies to the Project")
+        print("  2. Delete Project Technologies")
+        print("  3. Back")
+        print("-" * 50)
+
+        choice = input("      What would you like to edit for project id:" + proj_id + "? Select an option (1-4): ").strip()
+
+        if choice == "1":
+            add_projtech_relationship_prompt(proj_id)
+        elif choice == "2":
+            delete_projtech_relationship_prompt(proj_id)
+        elif choice == "3":
+            break
+        else:
+            print("Please pick an option (1-3)")
 
 
 def view_tech_menu():
