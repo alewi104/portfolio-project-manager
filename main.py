@@ -352,15 +352,17 @@ def view_all_tables():
     view_table("images")
     view_table("documents")
 
-def view_item_display_order_by_project(proj_id: int, table: str) -> pd.DataFrame:
+def view_item_display_order_by_project(proj_id: int, table: str) -> bool:
     conn = get_connection()
     df_sql = pd.read_sql("SELECT * FROM " + table + " WHERE proj_id = " + proj_id + " ORDER BY display_order", conn)
     conn.close()
 
     if df_sql.empty:
-        print("The " + table + " table is empty")
-
-    return df_sql
+        print("The " + table + " table is empty for project id: " + proj_id )
+        return False
+    else:
+        print(df_sql)
+        return True
 
 def view_item(proj_id: int, table: str) -> bool:
     conn = get_connection()
@@ -496,19 +498,18 @@ def edit_project_prompt(proj_id: int):
 
         
 
-
 def delete_project_prompt():
     while True:
         if view_table("projects") == False:
             print("There are no projects to delete. Try creating one first")
             break
 
-        choice = input("    Select the project id you'd like to delete: ").strip()
+        proj_id = input("    Select the project id you'd like to delete: ").strip()
 
-        if choice == "exit":
+        if proj_id == "exit":
             break
 
-        project_exists = check_item_exists(choice, "projects")
+        project_exists = check_item_exists(proj_id, "projects")
 
         if project_exists == False:
             print()
@@ -516,10 +517,10 @@ def delete_project_prompt():
             print()
             continue # may need to change back to break
         else:
-            confirm = input("   Are you sure you would like to delete project with id: " + choice + "? (yes/no) ").strip()
+            confirm = input("   Are you sure you would like to delete project with id: " + proj_id + "? (yes/no) ").strip()
 
             if confirm == "yes":
-                delete_item_by_id(choice, "projects")
+                delete_item_by_id(proj_id, "projects")
                 continue
             else:
                 continue
@@ -585,17 +586,20 @@ def add_image_prompt(proj_id=None):
                 
             if confirm == "yes":
                 display_order = str(add_image(proj_id, filepath, caption))
-                print(view_item_display_order_by_project(proj_id, "images"))
+                view_item_display_order_by_project(proj_id, "images")
                 print("image display order is #" + display_order + " in gallery ")
                 print()
             elif confirm == "no":
                 continue
             elif confirm =="exit":
                 break # need handling to input either yes or no only
+            
+            break
 
 def edit_image_prompt(proj_id: int):
     while True:
-        print(view_item_display_order_by_project(proj_id, "images"))
+        if view_item_display_order_by_project(proj_id, "images") == False:
+            break
         img_id = input("      Which image would you like to edit? ").strip()
         if img_id == "exit":
             break
@@ -629,23 +633,41 @@ def edit_image_prompt(proj_id: int):
                 continue
             elif confirm =="exit":
                 break # need handling to input either yes or no only
+
+def delete_image_prompt(proj_id: int):
+    while True:
+        if view_item_display_order_by_project(proj_id, "images") == False:
+            break
+        img_id = input("      Which image would you like to delete? ").strip()
+        if img_id == "exit":
+            break
+        
+        if check_item_exists(img_id, "images") == False: # insecure. Any image id from any project can be picked
+            print("Please pick an image that exists")
+            break
+        
+        confirm = input("   Are you sure you would like to delete image with id: " + img_id + "? (yes/no) ").strip()
+
+        if confirm == "yes":
+            delete_item_by_id(img_id, "images")
+            continue
+        else:
+            continue
         
 
-
-
-
 # DOCUMENT PROMPTS
-def add_document_prompt():
+def add_document_prompt(proj_id=None): # fix final exit break
     while True:
         print()
         print("-" * 50)
         print("DOCUMENT ENTRY")
         print("-" * 50)
 
-        view_table("projects")
-        proj_id = input("      Which project would you like to add documents to? ").strip()
-        if proj_id == "exit":
-            break
+        if proj_id is None:
+            view_table("projects")
+            proj_id = input("      Which project would you like to add images to? ").strip()
+            if proj_id == "exit":
+                break
         
         if check_item_exists(proj_id, "projects") == False:
             print("Please pick a project that exists")
@@ -660,13 +682,76 @@ def add_document_prompt():
                 
             if confirm == "yes":
                 display_order = str(add_document(proj_id, title, filepath, summary))
-                print(view_item_display_order_by_project(proj_id, "documents"))
+                view_item_display_order_by_project(proj_id, "documents")
                 print("document display order is #" + display_order + " in gallery ")
                 print()
             elif confirm == "no":
                 continue
             elif confirm =="exit":
                 break # need handling to input either yes or no only
+
+def edit_document_prompt(proj_id: int):
+    while True:
+        if view_item_display_order_by_project(proj_id, "documents") == False:
+            break
+        doc_id = input("      Which document would you like to edit? ").strip()
+        if doc_id == "exit":
+            break
+        
+        if check_item_exists(doc_id, "images") == False:
+            print("Please pick a document that exists")
+            break
+        
+        while True:
+            print("Editing document with id: " + doc_id)
+            print("Press Enter to skip")
+            print()
+            title = input("      What is the document's new title? ").strip()
+            filepath = input("      Where is the document located (new filepath)? ").strip()
+            caption = input("      Provide a new descriptive summary for the document: ").strip()
+            display_order = input("      New display order (#): ").strip()
+            confirm = input("       Are you sure you would like to save this document edit? (yes/no/exit) ").strip()
+
+            if title == "":
+                title = None
+            if filepath == "":
+                filepath = None
+            if summary  == "":
+                summary = None
+                
+            
+            if confirm == "yes":
+                edit_document(doc_id, title, filepath, summary)
+
+                if display_order != "":
+                    display_order = int(display_order)
+                    move_image_or_document(proj_id, int(doc_id), "document", display_order)
+                break
+
+            elif confirm == "no":
+                continue
+            elif confirm =="exit":
+                break # need handling to input either yes or no only
+
+def delete_document_prompt(proj_id: int):
+    while True:
+        if view_item_display_order_by_project(proj_id, "documents") == False:
+            break
+        doc_id = input("      Which document would you like to delete? ").strip()
+        if doc_id == "exit":
+            break
+        
+        if check_item_exists(doc_id, "documents") == False: # insecure. Any document id from any project can be picked
+            print("Please pick an image that exists")
+            break
+        
+        confirm = input("   Are you sure you would like to delete image with id: " + doc_id + "? (yes/no) ").strip()
+
+        if confirm == "yes":
+            delete_item_by_id(doc_id, "documents")
+            continue
+        else:
+            continue
 
 # PROJTECH RELATIONSHIP PROMPTS
 def add_projtech_relationship_prompt():
@@ -705,29 +790,25 @@ def add_projtech_relationship_prompt():
             continue
 
 
-
-
-
-
 def export_prompt():
     pass
 
 # MENUS
 
 def edit_project_menu():
-    while True:
+    if view_table("projects") == False:
+        print("There are no projects to edit. Try creating one first")
+        return
 
-        if view_table("projects") == False:
-            print("There are no projects to edit. Try creating one first")
-            break
-
-        proj_id = input("      Which project would you like to edit? ").strip()
-        if proj_id == "exit":
-            break
+    proj_id = input("      Which project would you like to edit? ").strip()
+    if proj_id == "exit":
+        return
         
-        if check_item_exists(proj_id, "projects") == False:
-            print("Please pick a project that exists")
-            break
+    if check_item_exists(proj_id, "projects") == False:
+        print("Please pick a project that exists")
+        return
+
+    while True:
 
         print()
         print("-" * 50)
@@ -740,42 +821,70 @@ def edit_project_menu():
         print("  5. Back")
         print("-" * 50)
 
-        choice = input("      What would you like to edit for project id1" + proj_id + "? Select an option (1-5): ").strip()
+        choice = input("      What would you like to edit for project id: " + proj_id + "? Select an option (1-5): ").strip()
 
         if choice == "1":
             edit_project_prompt(proj_id)
         elif choice == "2":
-            print()
-            print("-" * 50)
-            print("Options")
-            print("-" * 50)
-            print("  1. Edit Project Image")
-            print("  2. Add New Images to the Project")
-            print("  3. Delete Project Image")
-            print("  4. Back")
-            print("-" * 50)
-
-            img_choice = input("      What would you like to edit for project id:" + proj_id + "? Select an option (1-5): ").strip()
-
-            if img_choice == "1":
-                edit_image_prompt(proj_id)
-            elif img_choice == "2":
-                add_image_prompt(proj_id)
-            elif img_choice == "4":
-                break
-            else:
-                print("Please pick an option (1-4)")
-            
-
+            edit_image_menu(proj_id)
         elif choice == "3":
-            edit_document_prompt(proj_id)
+            edit_document_menu(proj_id)
         elif choice == "4":
             edit_technologies_prompt(proj_id)
         elif choice == "5":
             break
         else:
-            print(" invalid option chosen. Pick an option from 1-4")
+            print(" invalid option chosen. Pick an option from 1-5")
 
+def edit_image_menu(proj_id: int):
+    while True:
+        print()
+        print("-" * 50)
+        print("Options")
+        print("-" * 50)
+        print("  1. Edit Project Image")
+        print("  2. Add New Images to the Project")
+        print("  3. Delete Project Image")
+        print("  4. Back")
+        print("-" * 50)
+
+        choice = input("      What would you like to edit for project id:" + proj_id + "? Select an option (1-4): ").strip()
+
+        if choice == "1":
+            edit_image_prompt(proj_id)
+        elif choice == "2":
+            add_image_prompt(proj_id)
+        elif choice == "3":
+            delete_i
+        elif choice == "4":
+            break
+        else:
+            print("Please pick an option (1-4)")
+    
+def edit_document_menu(proj_id: int):
+    while True:
+        print()
+        print("-" * 50)
+        print("Options")
+        print("-" * 50)
+        print("  1. Edit Project Document")
+        print("  2. Add New Documents to the Project")
+        print("  3. Delete Project Document")
+        print("  4. Back")
+        print("-" * 50)
+
+        choice = input("      What would you like to edit for project id:" + proj_id + "? Select an option (1-4): ").strip()
+
+        if choice == "1":
+            edit_document_prompt(proj_id)
+        elif choice == "2":
+            add_document_prompt(proj_id)
+        elif choice == "3":
+            delete_document_prompt(proj_id)
+        elif choice == "4":
+            break
+        else:
+            print("Please pick an option (1-4)")
         
 
 
