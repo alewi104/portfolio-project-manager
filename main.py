@@ -95,7 +95,34 @@ def db_to_df(table: str) -> pd.DataFrame:
     return df_sql
 
 def export_db_to_json():
-    pass
+    conn = get_connection()
+    
+    projects = pd.read_sql("SELECT * FROM projects WHERE ready_for_publish = TRUE", conn)
+    technologies = pd.read_sql("SELECT * FROM projtechs NATURAL JOIN technologies", conn)
+    images = pd.read_sql("SELECT * FROM images", conn)
+    documents = pd.read_sql("SELECT * FROM documents", conn)
+    conn.close()
+
+    output = []
+    for _, project in projects.iterrows():
+        proj_id = project["proj_id"]
+
+        project_dict = project.to_dict()
+
+        project_dict["technologies"] = (technologies.loc[technologies.proj_id == proj_id, "name"].tolist())
+        project_dict["images"] = (images.loc[images.proj_id == proj_id].drop(columns="proj_id").to_dict("records"))
+        project_dict["documents"] = (documents.loc[documents.proj_id == proj_id].drop(columns="proj_id").to_dict("records"))
+
+        output.append(project_dict)
+
+    pd.DataFrame(output).to_json("output.json", orient="records", indent=4)
+
+
+    # df_sql.to_json('output.json', orient = 'records', indent = 4)
+    print("JSON export successful!")
+
+
+
 
 def check_item_exists(id: int, table:str) -> bool: # add error handling for database errors
     conn = get_connection()
@@ -306,7 +333,7 @@ def edit_document(doc_id:int, title: str, filepath:str, summary:str):
     conn.commit()
     conn.close()
 
-# DELETE HELPER
+# DELETE HELPERS
 
 def delete_item_by_id(id: int, table: str):
     conn = get_connection()
@@ -389,7 +416,7 @@ def view_item(proj_id: int, table: str) -> bool:
 
 def view_projtech_relationships(proj_id: int) -> bool:
     conn = get_connection()
-    df_sql = pd.read_sql("SELECT * FROM projtechs p INNER JOIN technologies t ON p.tech_id = t.tech_id WHERE proj_id = " + proj_id, conn)
+    df_sql = pd.read_sql("SELECT * FROM projtechs p NATURAL JOIN technologies WHERE proj_id = " + proj_id, conn)
     conn.close()
 
     if df_sql.empty:
@@ -420,19 +447,16 @@ def add_project_prompt():
     thumbnail_alt = input("     9. Enter thumbnail alt description: ").strip()
     github_link = input("     10. Enter github repo url: ").strip()
     demo_video = input("     11. Enter a demo video url: ").strip()
-    ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip()
+    ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip().lower()
 
 
     print()
     done = input("     done? (y/n): ").strip()
 
-    # if ready_for_publish == "yes":
-    #     ready_for_publish = True
-    # elif ready_for_publish == "no":
-    #     ready_for_publish = False
-    # else:
-    #     print("a yes or no only")
-    #     continue
+    if ready_for_publish in ("true", "t"):
+        ready_for_publish = True
+    elif ready_for_publish in ("false", "f"):
+        ready_for_publish = False
     
     if done == "y":
         add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
@@ -507,7 +531,12 @@ def edit_project_prompt(proj_id: int):
         github_link = None
     if demo_video == "":
         demo_video = None
-    if ready_for_publish == "":
+    
+    if ready_for_publish in ("true", "t"):
+        ready_for_publish = True
+    elif ready_for_publish in ("false", "f"):
+        ready_for_publish = False
+    elif ready_for_publish == "":
         ready_for_publish = None
     
 
@@ -844,7 +873,15 @@ def delete_projtech_relationship_prompt(proj_id=None):
 
 
 def export_prompt():
-    pass
+    while True:
+        choice = input("      Would you like to export all projects ready for publishing? (yes/no)").strip()
+
+        if choice == "yes":
+            export_db_to_json()
+        elif choice == "no":
+            break
+        else:
+            print("Please choose either 'yes' or 'no' ")
 
 # MENUS
 
@@ -1020,7 +1057,7 @@ def main():
         elif choice == "5":
             delete_project_prompt()
         elif choice == "6":
-            export_db_to_json()
+            export_prompt()
         elif choice == "7":
             view_tech_menu()
         elif choice == "8":
