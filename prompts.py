@@ -309,11 +309,14 @@ def add_document_prompt(proj_id=None): # fix final exit break
         while True:
             print("Adding Document to Project id " + proj_id)
             title = input("      What is the document's title? ").strip()
-            filepath = input("      Where is the document located (filepath)? ").strip()
+            filepath = input("      Where is the document located (filepath)? ").strip().strip('"')
             summary = input("      Provide a descriptive summary for the document: ").strip()      
             confirm = input("       Are you sure you would like to add this document? (yes/no/exit) ").strip()
                 
             if confirm == "yes":
+                filepath = set_dst_filepath(filepath, "document")
+                if filepath == None:
+                    break
                 display_order = str(add_document(proj_id, title, filepath, summary))
                 view_item_display_order_by_project(proj_id, "documents")
                 print("document display order is #" + display_order + " in gallery ")
