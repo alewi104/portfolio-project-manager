@@ -945,7 +945,7 @@ def edit_image_menu(proj_id: int):
         elif choice == "2":
             add_image_prompt(proj_id)
         elif choice == "3":
-            delete_i
+            delete_image_prompt(proj_id)
         elif choice == "4":
             break
         else:
