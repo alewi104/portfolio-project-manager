@@ -2,4 +2,6 @@
 portfolio_data.db
 output.json
 
+__pycache__/
+
 .DS_Store
