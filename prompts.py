@@ -458,12 +458,11 @@ def delete_projtech_relationship_prompt(proj_id=None):
 
 
 def export_prompt():
-    while True:
-        choice = input("      Would you like to export all projects ready for publishing? (yes/no)").strip()
+        choice = input("      Would you like to export all projects ready for publishing? (yes/no) ").strip()
 
         if choice == "yes":
             export_db_to_json()
         elif choice == "no":
-            break
+            print("Request cancelled")
         else:
             print("Please choose either 'yes' or 'no' ")

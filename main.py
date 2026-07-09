@@ -17,10 +17,7 @@ from prompts import export_prompt
 # TODO: Add input validation for yes/no and integer inputs. Can try for all str inputs
 # TODO: Add appropriate comments for the file and methods
 # TODO: conn.close() should be in 'finally' section of error handling try block
-# TODO: maybe utilize a project object to store a projects attributes in memory
-# TODO: fix in gallery enumeration. Displays item's entire table index instead of per project 
-
-# DATABASE
+# TODO: Fix exit conditions of all while loops 
 
 
 # MENUS
