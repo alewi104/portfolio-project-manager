@@ -5,9 +5,13 @@
 
 import sqlite3
 import pandas as pd
-import os
+import shutil
+from pathlib import Path
+
 
 DB_PATH = "portfolio_data.db"
+IMAGE_DST_PATH = "../Pico-8-Portfolio-Site/src/assets/images"
+DOC_DST_PATH = "../Pico-8-Portfolio-Site/src/assets/documents"
 
 # TODO: Add error handling to functions that interact with the database
 # TODO: After the error handling is complete make those functions return a boolean
@@ -62,7 +66,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS images (
                    img_id INTEGER PRIMARY KEY AUTOINCREMENT,
                    proj_id INTEGER,
-                   filepath TEXT,
+                   filepath TEXT UNIQUE,
                    caption TEXT,
                    display_order INTEGER,
                    FOREIGN KEY (proj_id) REFERENCES projects (proj_id) ON DELETE CASCADE
@@ -73,7 +77,7 @@ def init_db():
                    doc_id INTEGER PRIMARY KEY AUTOINCREMENT,
                    proj_id INTEGER,
                    title TEXT,
-                   filepath TEXT,
+                   filepath TEXT UNIQUE,
                    summary TEXT,
                    display_order INTEGER,
                    FOREIGN KEY (proj_id) REFERENCES projects (proj_id) ON DELETE CASCADE
@@ -120,9 +124,6 @@ def export_db_to_json():
 
     # df_sql.to_json('output.json', orient = 'records', indent = 4)
     print("JSON export successful!")
-
-
-
 
 def check_item_exists(id: int, table:str) -> bool: # add error handling for database errors
     conn = get_connection()
@@ -183,6 +184,28 @@ def move_image_or_document(proj_id: int, item_id:int, item_type: str, new_positi
 
     conn.commit()
     conn.close()
+
+def set_dst_filepath(filepath:str, file_type:str) -> str | None:
+    src = Path(filepath)
+
+    if not src.exists():
+        print("Source file does not exist")
+        return None
+    
+    if file_type == "image":
+        dst_dir = Path(IMAGE_DST_PATH)
+    elif file_type == "document":
+        dst_dir = Path(DOC_DST_PATH)
+    else:
+        print("File type does not exist")
+        return None
+    
+    dst_dir.parent.mkdir(parents=True, exist_ok=True)
+    dst = dst_dir / src.name
+
+    shutil.copy2(src, dst)
+
+    return str(dst)
 
 # ADD HELPERS
 
@@ -443,7 +466,7 @@ def add_project_prompt():
     solution = input("     5. Enter solutions: ").strip()
     lessons_learned = input("     6. Enter the lessons learned: ").strip()
     architecture = input("     7. Enter architecture: ").strip()
-    thumbnail = input("     8. Enter thumbnail url: ").strip()
+    thumbnail = input("     8. Enter thumbnail url: ").strip().strip("")
     thumbnail_alt = input("     9. Enter thumbnail alt description: ").strip()
     github_link = input("     10. Enter github repo url: ").strip()
     demo_video = input("     11. Enter a demo video url: ").strip()
@@ -631,11 +654,15 @@ def add_image_prompt(proj_id=None):
         
         while True:
             print("Adding Image to Project id " + proj_id)
-            filepath = input("      Where is the image located (filepath)? ").strip()
+            filepath = input("      Where is the image located (filepath)? ").strip().strip('"')
             caption = input("      Provide a descriptive caption for the image: ").strip()      
             confirm = input("       Are you sure you would like to add this image? (yes/no/exit) ").strip()
                 
             if confirm == "yes":
+                filepath = set_dst_filepath(filepath, "image")
+                if filepath == None:
+                    break
+                
                 display_order = str(add_image(proj_id, filepath, caption))
                 view_item_display_order_by_project(proj_id, "images")
                 print("image display order is #" + display_order + " in gallery ")
