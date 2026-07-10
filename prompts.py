@@ -81,7 +81,7 @@ def edit_project_prompt(proj_id: int):
     thumbnail_alt = input("     9. Enter a new thumbnail alt description: ").strip()
     github_link = input("     10. Enter a new github repo url: ").strip()
     demo_video = input("     11. Enter a new demo video url: ").strip()
-    ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip()
+    ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip().lower()
 
 
     print()
@@ -304,25 +304,24 @@ def add_document_prompt(proj_id=None): # fix final exit break
             print("Please pick a project that exists")
             break
         
-        while True:
-            print("Adding Document to Project id " + proj_id)
-            title = input("      What is the document's title? ").strip()
-            filepath = input("      Where is the document located (filepath)? ").strip().strip('"')
-            summary = input("      Provide a descriptive summary for the document: ").strip()      
-            confirm = input("       Are you sure you would like to add this document? (yes/no/exit) ").strip()
-                
-            if confirm == "yes":
-                filepath = set_dst_filepath(filepath, "document")
-                if filepath == None:
-                    break
-                display_order = str(add_document(proj_id, title, filepath, summary))
-                view_item_display_order_by_project(proj_id, "documents")
-                print("document display order is #" + display_order + " in gallery ")
-                print()
-            elif confirm == "no":
-                continue
-            elif confirm =="exit":
-                break # need handling to input either yes or no only
+        print("Adding Document to Project id " + proj_id)
+        title = input("      What is the document's title? ").strip()
+        filepath = input("      Where is the document located (filepath)? ").strip().strip('"')
+        summary = input("      Provide a descriptive summary for the document: ").strip()      
+        confirm = input("       Are you sure you would like to add this document? (yes/no/exit) ").strip()
+            
+        if confirm == "yes":
+            filepath = set_dst_filepath(filepath, "document")
+            if filepath == None:
+                break
+            display_order = str(add_document(proj_id, title, filepath, summary))
+            view_item_display_order_by_project(proj_id, "documents")
+            print("document display order is #" + display_order + " in gallery ")
+            print()
+        elif confirm == "no":
+            continue
+        elif confirm =="exit":
+            break # need handling to input either yes or no only
 
 def edit_document_prompt(proj_id: int):
     while True:
@@ -405,24 +404,23 @@ def add_projtech_relationship_prompt(proj_id=None):
             print("Please pick a project that exists")
             break
         
-        while True:
-            print("Adding Technology to Project id " + proj_id)
+        print("Adding Technology to Project id " + proj_id)
 
-            if view_table("technologies") == False:
-                print("There are no technologies to choose from. ")
-                choice = input("      Would you like to add some? (yes/no)").strip()
+        if view_table("technologies") == False:
+            print("There are no technologies to choose from. ")
+            choice = input("      Would you like to add some? (yes/no)").strip()
 
-                if choice == "yes":
-                    add_tech_prompt()
-                    continue
-                elif choice == "no":
-                    break
-            
-            tech_id = input("      Which technology would you like to add? Provide id: ").strip()
-            if tech_id == "exit":
+            if choice == "yes":
+                add_tech_prompt()
+                continue
+            elif choice == "no":
                 break
-            add_projtech_relationship(proj_id, tech_id)
-            continue
+        
+        tech_id = input("      Which technology would you like to add? Provide id: ").strip()
+        if tech_id == "exit":
+            break
+        add_projtech_relationship(proj_id, tech_id)
+        continue
 
 def delete_projtech_relationship_prompt(proj_id=None):
     while True:
@@ -433,7 +431,7 @@ def delete_projtech_relationship_prompt(proj_id=None):
 
         if proj_id is None:
             view_table("projects")
-            proj_id = input("      Which project would you like to add technologies to? ").strip()
+            proj_id = input("      Which project would you like to delete technologies from? ").strip()
             if proj_id == "exit":
                 break
         
@@ -441,16 +439,21 @@ def delete_projtech_relationship_prompt(proj_id=None):
             print("Please pick a project that exists")
             break
         
-        while True:
-            print("Deleting Technology from Project id " + proj_id)
-
-            if view_projtech_relationships(proj_id) == False:
-                print("There are no technologies to choose from. ")
-            
-            tech_id = input("      Which technology would you like to delete? Provide id: ").strip()
-            if tech_id == "exit":
-                break
+        if view_projtech_relationships(proj_id) == False:
+            print("There are no technologies to choose from. ")
+            break
+        
+        print("Deleting Technology from Project id " + proj_id)
+        
+        tech_id = input("      Which technology would you like to delete? Provide id: ").strip()
+        if tech_id == "exit":
+            break
+        
+        confirm = input("      Are you sure you would like to delete technology id:" + tech_id + "? (yes/no)").strip()
+        if confirm == "yes":
             delete_projtech_relationship(proj_id, tech_id)
+            continue
+        if confirm == "no":
             continue
 
 
