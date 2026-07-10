@@ -247,18 +247,23 @@ def edit_image_prompt(proj_id: int):
         
         while True:
             print("Editing image with id: " + img_id)
-            filepath = input("      Where is the image located (new filepath)? ").strip()
+            filepath = input("      Where is the image located (new filepath)? ").strip().strip('"')
             caption = input("      Provide a new descriptive caption for the image: ").strip()
             display_order = input("      New display order (#): ").strip()
             confirm = input("       Are you sure you would like to save this image edit? (yes/no/exit) ").strip()
-
-            if filepath == "":
-                filepath = None
-            if caption  == "":
-                caption = None
                 
             
             if confirm == "yes":
+                if filepath == "":
+                    filepath = None
+                else:
+                    filepath = set_dst_filepath(filepath, "image")
+                    if filepath == None:
+                        break
+                    
+                if caption  == "":
+                    caption = None
+                
                 edit_image(img_id, filepath, caption)
 
                 if display_order != "":
@@ -337,7 +342,7 @@ def edit_document_prompt(proj_id: int):
         if doc_id == "exit":
             break
         
-        if check_item_exists(doc_id, "images") == False:
+        if check_item_exists(doc_id, "documents") == False:
             print("Please pick a document that exists")
             break
         
@@ -346,20 +351,24 @@ def edit_document_prompt(proj_id: int):
             print("Press Enter to skip")
             print()
             title = input("      What is the document's new title? ").strip()
-            filepath = input("      Where is the document located (new filepath)? ").strip()
-            caption = input("      Provide a new descriptive summary for the document: ").strip()
+            filepath = input("      Where is the document located (new filepath)? ").strip().strip('"')
+            summary = input("      Provide a new descriptive summary for the document: ").strip()
             display_order = input("      New display order (#): ").strip()
             confirm = input("       Are you sure you would like to save this document edit? (yes/no/exit) ").strip()
-
-            if title == "":
-                title = None
-            if filepath == "":
-                filepath = None
-            if summary  == "":
-                summary = None
                 
             
             if confirm == "yes":
+                if title == "":
+                    title = None
+                if filepath == "":
+                    filepath = None
+                else:
+                    filepath = set_dst_filepath(filepath, "document")
+                    if filepath == None:
+                        break
+                if summary == "":
+                    summary = None
+
                 edit_document(doc_id, title, filepath, summary)
 
                 if display_order != "":
