@@ -6,6 +6,7 @@ from db_initializer import get_connection
 
 IMAGE_DST_PATH = "../Pico-8-Portfolio-Site/src/assets/images"
 DOC_DST_PATH = "../Pico-8-Portfolio-Site/src/assets/documents"
+DATA_DST_PATH = "../Pico-8-Portfolio-Site/public/data"
 
 # HELPERS
 
@@ -40,7 +41,7 @@ def export_db_to_json():
 
         output.append(project_dict)
 
-    pd.DataFrame(output).to_json("output.json", orient="records", indent=4)
+    pd.DataFrame(output).to_json(DATA_DST_PATH + "/output.json", orient="records", indent=4)
 
 
     # df_sql.to_json('output.json', orient = 'records', indent = 4)
