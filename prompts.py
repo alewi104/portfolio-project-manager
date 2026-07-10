@@ -207,27 +207,25 @@ def add_image_prompt(proj_id=None):
             print("Please pick a project that exists")
             break
         
-        while True:
-            print("Adding Image to Project id " + proj_id)
-            filepath = input("      Where is the image located (filepath)? ").strip().strip('"')
-            caption = input("      Provide a descriptive caption for the image: ").strip()      
-            confirm = input("       Are you sure you would like to add this image? (yes/no/exit) ").strip()
-                
-            if confirm == "yes":
-                filepath = set_dst_filepath(filepath, "image")
-                if filepath == None:
-                    break
-                
-                display_order = str(add_image(proj_id, filepath, caption))
-                view_item_display_order_by_project(proj_id, "images")
-                print("image display order is #" + display_order + " in gallery ")
-                print()
-            elif confirm == "no":
-                continue
-            elif confirm =="exit":
-                break # need handling to input either yes or no only
+        
+        print("Adding Image to Project id " + proj_id)
+        filepath = input("      Where is the image located (filepath)? ").strip().strip('"')
+        caption = input("      Provide a descriptive caption for the image: ").strip()      
+        confirm = input("       Are you sure you would like to add this image? (yes/no/exit) ").strip()
             
-            break
+        if confirm == "yes":
+            filepath = set_dst_filepath(filepath, "image")
+            if filepath == None:
+                break
+            
+            display_order = str(add_image(proj_id, filepath, caption))
+            view_item_display_order_by_project(proj_id, "images")
+            print("image display order is #" + display_order + " in gallery ")
+            print()
+        elif confirm == "no":
+            continue
+        elif confirm =="exit":
+            break # need handling to input either yes or no only
 
 def edit_image_prompt(proj_id: int):
     while True:
