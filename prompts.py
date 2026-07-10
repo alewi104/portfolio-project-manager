@@ -21,7 +21,7 @@ def add_project_prompt():
     solution = input("     5. Enter solutions: ").strip()
     lessons_learned = input("     6. Enter the lessons learned: ").strip()
     architecture = input("     7. Enter architecture: ").strip()
-    thumbnail = input("     8. Enter thumbnail url: ").strip().strip("")
+    thumbnail = input("     8. Enter thumbnail filepath: ").strip().strip("")
     thumbnail_alt = input("     9. Enter thumbnail alt description: ").strip()
     github_link = input("     10. Enter github repo url: ").strip()
     demo_video = input("     11. Enter a demo video url: ").strip()
@@ -37,6 +37,9 @@ def add_project_prompt():
         ready_for_publish = False
     
     if done == "y":
+        thumbnail = set_dst_filepath(thumbnail, "image")
+        if thumbnail == None:
+            return
         add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
         add_images = input("     Would you like to add images to this project? (yes/no): ").strip()
         if add_images == "yes":
@@ -77,7 +80,7 @@ def edit_project_prompt(proj_id: int):
     solution = input("     5. Enter new solutions: ").strip()
     lessons_learned = input("     6. Enter the new lessons learned: ").strip()
     architecture = input("     7. Enter new architecture: ").strip()
-    thumbnail = input("     8. Enter a new thumbnail url: ").strip()
+    thumbnail = input("     8. Enter a new thumbnail filepath: ").strip().strip('"')
     thumbnail_alt = input("     9. Enter a new thumbnail alt description: ").strip()
     github_link = input("     10. Enter a new github repo url: ").strip()
     demo_video = input("     11. Enter a new demo video url: ").strip()
@@ -119,6 +122,9 @@ def edit_project_prompt(proj_id: int):
     
 
     if done == "y":
+        thumbnail = set_dst_filepath(thumbnail, "image")
+        if thumbnail == None:
+            return
         edit_project(proj_id, slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
     elif done == "n":
         return print("PROJECT EDIT ABORTED")
