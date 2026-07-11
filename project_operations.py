@@ -4,9 +4,9 @@ from pathlib import Path
 
 from db_initializer import get_connection
 
-IMAGE_DST_PATH = "../Pico-8-Portfolio-Site/src/assets/images"
-DOC_DST_PATH = "../Pico-8-Portfolio-Site/src/assets/documents"
-DATA_DST_PATH = "../Pico-8-Portfolio-Site/public/data"
+IMAGE_DST_PATH = "../Pico-8-Portfolio-Site/public/images"
+DOC_DST_PATH = "../Pico-8-Portfolio-Site/public/documents"
+DATA_DST_PATH = "../Pico-8-Portfolio-Site/src/assets/data"
 
 # HELPERS
 
@@ -127,7 +127,10 @@ def set_dst_filepath(filepath:str, file_type:str) -> str | None:
 
     shutil.copy2(src, dst)
 
-    return str(dst)
+    file_name = dst.name
+    parent_folder = dst.parent.name
+
+    return str(Path("/") / parent_folder / file_name)
 
 # ADD HELPERS
 
