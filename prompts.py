@@ -21,7 +21,7 @@ def add_project_prompt():
     solution = input("     5. Enter solutions: ").strip()
     lessons_learned = input("     6. Enter the lessons learned: ").strip()
     architecture = input("     7. Enter architecture: ").strip()
-    thumbnail = input("     8. Enter thumbnail filepath: ").strip().strip("")
+    thumbnail = input("     8. Enter thumbnail filepath: ").strip().strip('"')
     thumbnail_alt = input("     9. Enter thumbnail alt description: ").strip()
     github_link = input("     10. Enter github repo url: ").strip()
     demo_video = input("     11. Enter a demo video url: ").strip()
