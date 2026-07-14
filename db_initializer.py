@@ -23,7 +23,8 @@ def init_db():
                    solution TEXT,
                    lessons_learned TEXT,
                    architecture TEXT, 
-                   ready_for_publish BOOLEAN
+                   ready_for_publish BOOLEAN, 
+                   featured BOOLEAN
                 )
             """)
     cursor.execute("""

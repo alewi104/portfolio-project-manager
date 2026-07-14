@@ -67,7 +67,7 @@ def check_item_exists(id: int, table:str) -> bool: # add error handling for data
 
     return not df_sql.empty
 
-def move_image_or_document(proj_id: int, item_id:int, item_type: str, new_position:int):
+def move_item_display_order(proj_id: int, item_id:int, item_type: str, new_position:int):
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -134,11 +134,11 @@ def set_dst_filepath(filepath:str, file_type:str) -> str | None:
 
 # ADD HELPERS
 
-def add_project(slug: str, title: str, thumbnail_alt: str, description: str, thumbnail: str, github_link: str, demo_video: str, problem: str, solution: str, lessons_learned: str, architecture: str, ready_for_publish: bool):
+def add_project(slug: str, title: str, thumbnail_alt: str, description: str, thumbnail: str, github_link: str, demo_video: str, problem: str, solution: str, lessons_learned: str, architecture: str, ready_for_publish: bool, featured: bool):
     conn = get_connection()
     cursor = conn.cursor()
-    query = "INSERT INTO projects (slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish) VALUES(?,?,?,?,?,?,?,?,?,?,?,?);" 
-    cursor.execute(query, (slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish))
+    query = "INSERT INTO projects (slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish, featured) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?);" 
+    cursor.execute(query, (slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish, featured))
             
     conn.commit()
     conn.close()
@@ -199,7 +199,7 @@ def add_document(proj_id:int, title: str, filepath:str, summary:str):
 # def edit_project_info_query(attribute: str, proj_id: int) -> str:
 #     query = "UPDATE projects SET title = ? WHERE proj_id = ?"
 
-def edit_project(proj_id: int, slug: str, title: str, thumbnail_alt: str, description: str, thumbnail: str, github_link: str, demo_video: str, problem: str, solution: str, lessons_learned: str, architecture: str, ready_for_publish: bool):
+def edit_project(proj_id: int, slug: str, title: str, thumbnail_alt: str, description: str, thumbnail: str, github_link: str, demo_video: str, problem: str, solution: str, lessons_learned: str, architecture: str, ready_for_publish: bool, featured: bool):
     conn = get_connection()
     cursor = conn.cursor()
     
@@ -227,6 +227,8 @@ def edit_project(proj_id: int, slug: str, title: str, thumbnail_alt: str, descri
         cursor.execute("UPDATE projects SET demo_video = ? WHERE proj_id = ?", (demo_video, proj_id))
     if ready_for_publish is not None:
         cursor.execute("UPDATE projects SET ready_for_publish = ? WHERE proj_id = ?", (ready_for_publish, proj_id))
+    if featured is not None:
+        cursor.execute("UPDATE projects SET featured = ? WHERE proj_id = ?", (featured, proj_id))
     
     conn.commit()
     conn.close()

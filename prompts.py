@@ -2,7 +2,7 @@ from project_operations import add_project, add_technology, add_projtech_relatio
 from project_operations import edit_project, edit_image, edit_document
 from project_operations import delete_item_by_id, delete_projtech_relationship
 from project_operations import view_table, view_all_tables, view_item_display_order_by_project, view_item, view_projtech_relationships
-from project_operations import export_db_to_json, check_item_exists, move_image_or_document, set_dst_filepath
+from project_operations import export_db_to_json, check_item_exists, move_item_display_order, set_dst_filepath
 
 # PROMPTS
 
@@ -26,6 +26,7 @@ def add_project_prompt():
     github_link = input("     10. Enter github repo url: ").strip()
     demo_video = input("     11. Enter a demo video url: ").strip()
     ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip().lower()
+    featured = input("     12. Is this a featured project? (True/False): ").strip().lower()
 
 
     print()
@@ -36,11 +37,16 @@ def add_project_prompt():
     elif ready_for_publish in ("false", "f"):
         ready_for_publish = False
     
+    if featured in ("true", "t"):
+        featured = True
+    elif featured in ("false", "f"):
+        featured = False
+    
     if done == "y":
         thumbnail = set_dst_filepath(thumbnail, "image")
         if thumbnail == None:
             return
-        add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
+        add_project(slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish, featured)
         add_images = input("     Would you like to add images to this project? (yes/no): ").strip()
         if add_images == "yes":
             add_image_prompt()
@@ -85,7 +91,7 @@ def edit_project_prompt(proj_id: int):
     github_link = input("     10. Enter a new github repo url: ").strip()
     demo_video = input("     11. Enter a new demo video url: ").strip()
     ready_for_publish = input("     12. Is this project ready to publish? (True/False): ").strip().lower()
-
+    featured = input("     12. Is this a featured project? (True/False): ").strip().lower()
 
     print()
     done = input("     done? (y/n): ").strip()
@@ -120,12 +126,19 @@ def edit_project_prompt(proj_id: int):
     elif ready_for_publish == "":
         ready_for_publish = None
     
+    if featured in ("true", "t"):
+        featured = True
+    elif featured in ("false", "f"):
+        featured = False
+    elif featured == "":
+        featured = None
+    
 
     if done == "y":
         thumbnail = set_dst_filepath(thumbnail, "image")
         if thumbnail == None:
             return
-        edit_project(proj_id, slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish)
+        edit_project(proj_id, slug, title, thumbnail_alt, description, thumbnail, github_link, demo_video, problem, solution, lessons_learned, architecture, ready_for_publish, featured)
     elif done == "n":
         return print("PROJECT EDIT ABORTED")
     
@@ -268,7 +281,7 @@ def edit_image_prompt(proj_id: int):
 
                 if display_order != "":
                     display_order = int(display_order)
-                    move_image_or_document(proj_id, int(img_id), "image", display_order)
+                    move_item_display_order(proj_id, int(img_id), "image", display_order)
                 break
 
             elif confirm == "no":
@@ -373,7 +386,7 @@ def edit_document_prompt(proj_id: int):
 
                 if display_order != "":
                     display_order = int(display_order)
-                    move_image_or_document(proj_id, int(doc_id), "document", display_order)
+                    move_item_display_order(proj_id, int(doc_id), "document", display_order)
                 break
 
             elif confirm == "no":
